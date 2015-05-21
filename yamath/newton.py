@@ -68,13 +68,31 @@ def newton_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
     raise RuntimeError("Not convergent (Newton-hook)")
 
 
+def hook_step(A, b, r, nu=0):
+    r2 = r * r
+    I = np.matrix(np.identity(len(b), dtype=b.dtype))
+    AA = A.T * A
+    Ab = A.T * b
+    while True:
+        B = np.linalg.inv(AA - nu * I)
+        xi = B * Ab
+        Psi = float(xi.T * xi)
+        print("Psi:" + str(Psi))
+        if abs(Psi - r2) < 0.1 * r2:
+            return xi
+        dPsi = 2 * float(xi.T * B * xi)
+        a = - Psi * Psi / dPsi
+        b = - Psi / dPsi - nu
+        nu = a / r2 - b
+
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG
     handler = StreamHandler()
     handler.setLevel(DEBUG)
     logger.addHandler(handler)
 
-    x0 = np.array([0, 0], dtype=np.float64)
-    x = newton_hook(f1, x0)
-    print(x)
-    print(f1(x))
+    b = np.matrix([1, 0], dtype=np.float64).T
+    A = np.matrix([[1, 0], [2, 6]], dtype=np.float64)
+    xi = hook_step(A, b, 0.2)
+    print(xi)
+    print(np.linalg.norm(xi))

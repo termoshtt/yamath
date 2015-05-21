@@ -17,10 +17,22 @@ class Arnoldi(object):
         self.basis = [b / b_norm]
         self.H = []
 
-    def iterate(self):
+    def iterate(self, e=1e-10):
+        """ iterate Arnoldi process
+
+        Parameters
+        ----------
+        e : float, optional (default=1e-10)
+            Residual threshold
+
+        Returns
+        ------
+        (residual, unit vector)
+
+        """
         v = self.basis[-1]
-        if len(self.H) > len(v):
-            raise RuntimeError("Over iterate")
+        if len(self.H) >= len(v):
+            return None
         u = self.A * v
         weight = []
         for b in self.basis:
@@ -30,16 +42,16 @@ class Arnoldi(object):
         u_norm = np.linalg.norm(u)
         weight.append(u_norm)
         self.H.append(np.array(weight))
-        if u_norm > 1e-10:
+        if u_norm > e:
             b = u / u_norm
             self.basis.append(b)
-            return b
+            return (u_norm, b)
         return None
 
     def get_basis(self):
         N = len(self.basis[0])
-        resized = [np.resize(b, (1, N)) for b in self.basis]
-        return np.concatenate(resized, axis=0)
+        resized = [np.resize(b, (N, 1)) for b in self.basis]
+        return np.concatenate(resized, axis=1)
 
     def get_projected_matrix(self):
         N = len(self.basis[0])
@@ -52,16 +64,36 @@ class Arnoldi(object):
         return np.concatenate(resized, axis=1)
 
 
+def arnoldi(A, b):
+    """ get Arnoldi projected matrix and its basis
+
+    Parameters
+    ----------
+    A : scipy.sparse.linalg.LinearOperator
+        linear operator
+    b : array like
+        basis of Krylov subspace
+
+    Returns
+    -------
+    (H, V)
+        H is projected matrix, and V is basis.
+
+    """
+    O = Arnoldi(A, b)
+    while O.iterate() is not None:
+        pass
+    return (O.get_projected_matrix(), O.get_basis())
+
+
 if __name__ == '__main__':
-    rand = np.random.rand(3, 3)
+    rand = np.random.rand(4, 4)
 
     def matvec(x):
         return np.dot(rand, x)
 
-    A = linalg.LinearOperator((3, 3), matvec=matvec, dtype=np.float64)
-    b = np.array([1, 0, 0], dtype=np.float64)
-    O = Arnoldi(A, b)
-    while O.iterate() is not None:
-        pass
-    print(O.get_projected_matrix())
-    print(O.get_basis())
+    A = linalg.LinearOperator((4, 4), matvec=matvec, dtype=np.float64)
+    b = np.array([1, 2, 0, 0], dtype=np.float64)
+    H, V = arnoldi(A, b)
+    print(H)
+    print(V)

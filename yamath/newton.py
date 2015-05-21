@@ -77,7 +77,7 @@ def hook_step(A, b, r, nu=0):
         B = np.linalg.inv(AA - nu * I)
         xi = B * Ab
         Psi = float(xi.T * xi)
-        print("Psi:" + str(Psi))
+        logger.debug("Psi:{:e}".format(Psi))
         if abs(Psi - r2) < 0.1 * r2:
             return xi
         dPsi = 2 * float(xi.T * B * xi)

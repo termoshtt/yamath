@@ -64,7 +64,7 @@ class Arnoldi(object):
         return np.concatenate(resized, axis=1)
 
 
-def arnoldi(A, b):
+def arnoldi(A, b, e=1e-10):
     """ get Arnoldi projected matrix and its basis
 
     Parameters
@@ -73,15 +73,18 @@ def arnoldi(A, b):
         linear operator
     b : array like
         basis of Krylov subspace
+    e : float, optional (default=1e-10)
+        Residual threshold
 
     Returns
     -------
     (H, V)
-        H is projected matrix, and V is basis.
+        H is projected Hessemberg matrix,
+        and V is basis (V[:,n] is each basis vector).
 
     """
     O = Arnoldi(A, b)
-    while O.iterate() is not None:
+    while O.iterate(e) is not None:
         pass
     return (O.get_projected_matrix(), O.get_basis())
 
@@ -97,3 +100,4 @@ if __name__ == '__main__':
     H, V = arnoldi(A, b)
     print(H)
     print(V)
+    print(V[:, 0])

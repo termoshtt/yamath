@@ -36,7 +36,7 @@ class Arnoldi(object):
         u = self.A * v
         weight = []
         for b in self.basis:
-            w = np.dot(u, b)
+            w = np.dot(b, u)
             weight.append(w)
             u -= w * b
         u_norm = np.linalg.norm(u)
@@ -97,7 +97,9 @@ if __name__ == '__main__':
 
     A = linalg.LinearOperator((4, 4), matvec=matvec, dtype=np.float64)
     b = np.array([1, 2, 0, 0], dtype=np.float64)
+    print("A", A)
+    print("b", b)
     H, V = arnoldi(A, b)
-    print(H)
-    print(V)
-    print(V[:, 0])
+    print("H", H)
+    print("V", V)
+    print("V0", V[:, 0])

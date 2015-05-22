@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.sparse.linalg as linalg
 
 from logging import getLogger, DEBUG
 logger = getLogger(__name__)
@@ -87,19 +85,3 @@ def arnoldi(A, b, e=1e-10):
     while O.iterate(e) is not None:
         pass
     return (O.get_projected_matrix(), O.get_basis())
-
-
-if __name__ == '__main__':
-    rand = np.random.rand(4, 4)
-
-    def matvec(x):
-        return np.dot(rand, x)
-
-    A = linalg.LinearOperator((4, 4), matvec=matvec, dtype=np.float64)
-    b = np.array([1, 2, 0, 0], dtype=np.float64)
-    print("A", A)
-    print("b", b)
-    H, V = arnoldi(A, b)
-    print("H", H)
-    print("V", V)
-    print("V0", V[:, 0])

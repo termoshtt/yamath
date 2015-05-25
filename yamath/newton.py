@@ -10,12 +10,6 @@ logger = getLogger(__name__)
 logger.setLevel(DEBUG)
 
 
-def f1(v):
-    x = v[0]
-    y = v[1]
-    return np.array([(x - 1) * (x - 2) * (x - 3) * (x - 4), (y - 2) ** 3])
-
-
 def Jacobi(func, x0, alpha=1e-7, fx=None):
     if fx is None:
         fx = func(x0)
@@ -43,13 +37,13 @@ def newton(func, x0, ftol=1e-5, maxiter=100):
         logger.debug('count:{:d}\tresidual:{:e}'.format(t, res))
         if res <= ftol:
             return x0
-        A = Jacobi(func, x0)
+        A = Jacobi(func, x0, fx)
         dx = _inv(A, -fx)
-        x0 += dx
+        x0 = x0 + dx
     raise RuntimeError("Not convergent (Newton)")
 
 
-def hook_step(A, b, r, nu=0):
+def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
     """
     optimal hook step based on trusted region approach
 
@@ -63,25 +57,52 @@ def hook_step(A, b, r, nu=0):
 
     Returns
     --------
-    numpy.array
-        argmin of xi
+    (numpy.array, float)
+        argmin of xi, and nu
 
     """
     r2 = r * r
     I = np.matrix(np.identity(len(b), dtype=b.dtype))
     AA = A.T * A
     Ab = np.dot(A.T, b)
-    while True:
+    for t in range(maxiter):
         B = np.array(np.linalg.inv(AA - nu * I))
         xi = np.dot(B, Ab)
         Psi = np.dot(xi, xi)
         logger.debug("Psi:{:e}".format(Psi))
-        if abs(Psi - r2) < 0.1 * r2:
-            return xi
+        if abs(Psi - r2) < e * r2:
+            value = np.dot(xi, np.dot(AA, xi) + Ab)
+            print("value", value)
+            return xi, nu
         dPsi = 2 * np.dot(xi, np.dot(B, xi))
         a = - Psi * Psi / dPsi
         b = - Psi / dPsi - nu
         nu = a / r2 - b
+    raise RuntimeError("Not convergent (hook-step)")
+
+
+def krylov_hook_step(A, b, r, **kwds):
+    """
+    optimal hook step with Krylov subspace method
+
+    Parameters
+    ----------
+    A : LinearOperator
+    b : numpy.array
+    r : float
+        trusted region
+
+    Returns
+    --------
+    (numpy.array, float)
+        argmin of xi, and nu
+
+    """
+    H, V = krylov.arnoldi(A, b)
+    beta = np.zeros(H.shape[0])
+    beta[0] = np.linalg.norm(b)
+    xi, nu = hook_step(H, beta, r, **kwds)
+    return np.dot(V, xi), nu
 
 
 def newton_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
@@ -103,20 +124,11 @@ def newton_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
             continue
         logger.info('hook step')
         H, V = krylov.arnoldi(A, b)
-        beta = np.array([np.linalg.norm(b)])
-        beta.resize(H.shape[0])
-        xi = hook_step(H, beta, r)
+        beta = np.zeros(H.shape[0])
+        beta[0] = np.linalg.norm(b)
+        xi, _ = hook_step(H, beta, r)
         logger.debug("xi:" + str(xi))
         dx = np.dot(V, xi)
         logger.debug("dx:" + str(dx))
         x0 = x0 + dx
     raise RuntimeError("Not convergent (Newton-hook)")
-
-if __name__ == '__main__':
-    from logging import StreamHandler, DEBUG
-    handler = StreamHandler()
-    handler.setLevel(DEBUG)
-    logger.addHandler(handler)
-
-    x0 = np.array([0, 0])
-    newton_hook(f1, x0, r=0.1)

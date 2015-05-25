@@ -54,11 +54,16 @@ def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
     b : numpy.array
     r : float
         trusted region
+    nu : float, optional (default=0.0)
+        initial value of Lagrange multiplier
+    e : float, optional (default=0.1)
+        relative tolerance of residue form r
 
     Returns
     --------
     (numpy.array, float)
-        argmin of xi, and nu
+        argmin of xi, and nu (Lagrange multiplier)
+        CAUTION: nu may be not accurate
 
     """
     r2 = r * r
@@ -71,8 +76,12 @@ def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
         Psi = np.dot(xi, xi)
         logger.debug("Psi:{:e}".format(Psi))
         if abs(Psi - r2) < e * r2:
-            value = np.dot(xi, np.dot(AA, xi) + Ab)
-            print("value", value)
+            tmp = Ab + np.dot(AA, xi)
+            value = np.dot(xi, tmp)
+            if value > 0:
+                # In this case, the value of nu may be not accurate
+                logger.info("Convergent into maximum")
+                return -xi, tmp[0] / xi[0]
             return xi, nu
         dPsi = 2 * np.dot(xi, np.dot(B, xi))
         a = - Psi * Psi / dPsi

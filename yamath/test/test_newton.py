@@ -40,3 +40,9 @@ class TestNewton(TestCase):
         xi1, nu1 = newton.hook_step(A, b, r, e=1e-1)
         xi2, nu2 = newton.krylov_hook_step(B, b, r, e=1e-1)
         np.testing.assert_almost_equal(xi1, xi2, decimal=1)
+
+    def test_newton_krylov_hook(self):
+        """ Simple test for Newton-Krylov-hook method using polynominal function """
+        x0 = np.array([0, 0])
+        x = newton.newton_krylov_hook(f1, x0, r=0.1)
+        np.testing.assert_array_almost_equal(f1(x), np.zeros_like(x), decimal=5)

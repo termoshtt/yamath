@@ -65,6 +65,13 @@ def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
         argmin of xi, and nu (Lagrange multiplier)
         CAUTION: nu may be not accurate
 
+    References
+    ----------
+    - Numerical Methods for Unconstrained Optimization and Nonlinear Equations
+      J. E. Dennis, Jr. and Robert B. Schnabel
+      http://dx.doi.org/10.1137/1.9781611971200
+      Chapter 6.4: THE MODEL-TRUST REGION APPROACH
+
     """
     r2 = r * r
     I = np.matrix(np.identity(len(b), dtype=b.dtype))
@@ -114,12 +121,11 @@ def krylov_hook_step(A, b, r, **kwds):
     return np.dot(V, xi), nu
 
 
-def newton_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
+def newton_krylov_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
     for t in range(maxiter):
-        logger.debug("x0:" + str(x0))
         fx = func(x0)
         res = np.linalg.norm(fx)
-        logger.debug('count:{:d}\tresidual:{:e}'.format(t, res))
+        logger.debug('count:{:d}\tresidue:{:e}'.format(t, res))
         if res <= ftol:
             return x0
         A = Jacobi(func, x0, fx=fx)
@@ -132,12 +138,6 @@ def newton_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
             x0 = x0 + dx
             continue
         logger.info('hook step')
-        H, V = krylov.arnoldi(A, b)
-        beta = np.zeros(H.shape[0])
-        beta[0] = np.linalg.norm(b)
-        xi, _ = hook_step(H, beta, r)
-        logger.debug("xi:" + str(xi))
-        dx = np.dot(V, xi)
-        logger.debug("dx:" + str(dx))
-        x0 = x0 + dx
+        dx, _ = krylov_hook_step(A, b, r)
+        x0 = x0 - dx
     raise RuntimeError("Not convergent (Newton-hook)")

@@ -64,9 +64,3 @@ class TestNewton(TestCase):
         x0 = np.array([3, 8])
         with self.assertRaises(RuntimeError):
             newton.newton_krylov_hook(f2, x0, r=0.2)
-
-    def test_newton_krylov_hook_trust(self):
-        """ non-convergent case (no-zero point) for Newton-Krylov-hook """
-        x0 = np.array([3, 8])
-        with self.assertRaises(RuntimeError):
-            newton.newton_krylov_hook(f2, x0, r=2)

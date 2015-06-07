@@ -73,6 +73,8 @@ def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
       Chapter 6.4: THE MODEL-TRUST REGION APPROACH
 
     """
+    logger.debug("nu:{:e}".format(nu))
+    logger.debug("r:{:e}".format(r))
     r2 = r * r
     I = np.matrix(np.identity(len(b), dtype=b.dtype))
     AA = A.T * A
@@ -85,6 +87,7 @@ def hook_step(A, b, r, nu=0, maxiter=100, e=0.1):
         if abs(Psi - r2) < e * r2:
             tmp = Ab + np.dot(AA, xi)
             value = np.dot(xi, tmp)
+            logger.debug("value:{:e}".format(value))
             if value > 0:
                 # In this case, the value of nu may be not accurate
                 logger.info("Convergent into maximum")
@@ -122,9 +125,14 @@ def krylov_hook_step(A, b, r, **kwds):
 
 
 def newton_krylov_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
+    nu = 0.0
     for t in range(maxiter):
         fx = func(x0)
         res = np.linalg.norm(fx)
+        if t == 0:
+            res_pre = res
+        if res > res_pre:
+            raise RuntimeError("Invalid trusted region")
         logger.debug('count:{:d}\tresidue:{:e}'.format(t, res))
         if res <= ftol:
             return x0
@@ -138,6 +146,6 @@ def newton_krylov_hook(func, x0, r=1e-2, ftol=1e-5, maxiter=100):
             x0 = x0 + dx
             continue
         logger.info('hook step')
-        dx, _ = krylov_hook_step(A, b, r)
+        dx, nu = krylov_hook_step(A, b, r, nu=nu)
         x0 = x0 - dx
     raise RuntimeError("Not convergent (Newton-hook)")
